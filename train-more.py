@@ -102,7 +102,7 @@ if __name__ == "__main__":
   if sys.argv[1] == "train":
     EPOCHS = int(sys.argv[2])
     try:
-      model = tf.saved_model.load("actual_model")
+      model = tf.keras.models.load_model("actual_model")
     except Exception as e:
       print("Could not find a saved model. Training from scratch.")
     history = model.fit(dataset, epochs=EPOCHS, callbacks=[checkpoint_callback])

@@ -98,9 +98,10 @@ checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
 
 checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_prefix, save_weights_only=True)
 
-if sys.argv[1] == "train":
-  EPOCHS = int(sys.argv[2])
-  history = model.fit(dataset, epochs=EPOCHS, callbacks=[checkpoint_callback])
+if __name__ == "__main__":
+  if sys.argv[1] == "train":
+    EPOCHS = int(sys.argv[2])
+    history = model.fit(dataset, epochs=EPOCHS, callbacks=[checkpoint_callback])
 
 class OneStep(tf.keras.Model):
   def __init__(self, model, chars_from_ids, ids_from_chars, temperature=1.0):
@@ -135,22 +136,31 @@ class OneStep(tf.keras.Model):
 
     return predicted_chars, states
 
-if sys.argv[1] == "load":
+if __name__ == "__main__":
+  if sys.argv[1] == "load":
+    one_step_model = tf.saved_model.load("one_step")
+  elif sys.argv[1] == "train":
+    one_step_model = OneStep(model, chars_from_ids, ids_from_chars)
+else:
   one_step_model = tf.saved_model.load("one_step")
-elif sys.argv[1] == "train":
-  one_step_model = OneStep(model, chars_from_ids, ids_from_chars)
 
-states = None
-next_char = tf.constant(["I"])
-result = [next_char]
+def predict(length):
+  states = None
+  next_char = tf.constant(["I"])
+  result = [next_char]
 
-for n in range(1000):
-  next_char, states = one_step_model.generate_one_step(next_char, states=states)
-  result.append(next_char)
+  for n in range(length):
+    next_char, states = one_step_model.generate_one_step(next_char, states=states)
+    result.append(next_char)
 
-result = tf.strings.join(result)
-end = time.time()
-print(result[0].numpy().decode("utf-8"), "\n\n" + "_"*80)
-print("\nRun Time:", end - start)
-if sys.argv[1] == "train":
-  tf.saved_model.save(one_step_model, "one_step")
+  result = tf.strings.join(result)
+  #end = time.time()
+  #print(result[0].numpy().decode("utf-8"), "\n\n" + "_"*80)
+  #print("\nRun Time:", end - start)
+  #if sys.argv[1] == "train":
+  #  tf.saved_model.save(one_step_model, "one_step")
+  return result[0].numpy().decode("utf-8")
+
+if __name__ == "__main__":
+  if sys.argv[1] == "train":
+    tf.saved_model.save(one_step_model, "one_step")
